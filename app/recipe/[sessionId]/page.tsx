@@ -181,12 +181,55 @@ ${recipe.tips.map(tip => `- ${tip}`).join('\n')}` : ''}`;
   );
 };
 
+const Drawer = ({ isOpen, onClose, children }: { isOpen: boolean; onClose: () => void; children: React.ReactNode }) => {
+  return (
+    <>
+      {/* Backdrop */}
+      <div 
+        className={`fixed inset-0 bg-black bg-opacity-50 transition-opacity duration-300 ${
+          isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={onClose}
+      />
+      
+      {/* Drawer */}
+      <div
+        className={`fixed top-0 right-0 w-full sm:w-[32rem] h-full bg-white shadow-xl transform transition-transform duration-300 ease-in-out z-50 ${
+          isOpen ? 'translate-x-0' : 'translate-x-full'
+        }`}
+      >
+        <div className="h-full flex flex-col">
+          <div className="flex justify-between items-center p-6 border-b">
+            <h3 className="text-xl font-semibold text-black">Alternative Ingredients</h3>
+            <button
+              onClick={onClose}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto p-6 text-black">
+            {children}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+};
+
 export default function RecipePage({ params }: { params: Promise<{ sessionId: string }> }) {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [url, setUrl] = useState('');
+  const [servings, setServings] = useState<number>(0);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [alternatives, setAlternatives] = useState<string>('');
+  const [citations, setCitations] = useState<string[]>([]);
+  const [loadingAlternatives, setLoadingAlternatives] = useState(false);
 
   const { sessionId } = use(params);
 
@@ -207,6 +250,7 @@ export default function RecipePage({ params }: { params: Promise<{ sessionId: st
         if (data.recipe) {
           setRecipe(data.recipe);
           setUrl(data.url);
+          setServings(data.recipe.servings || 1);
         } else {
           throw new Error('Recipe not found');
         }
@@ -220,6 +264,40 @@ export default function RecipePage({ params }: { params: Promise<{ sessionId: st
 
     loadRecipe();
   }, [sessionId]);
+
+  const adjustQuantity = (quantity: number, originalServings: number, newServings: number) => {
+    return Number(((quantity * newServings) / originalServings).toFixed(2));
+  };
+
+  const generateAlternatives = async () => {
+    setLoadingAlternatives(true);
+    try {
+      const response = await fetch('/api/alternatives', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          title: recipe?.title,
+          ingredients: recipe?.ingredients.map(ing => ing.name)
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to generate alternatives');
+      }
+
+      const data = await response.json();
+      setAlternatives(data.content);
+      setCitations(data.citations || []);
+    } catch (error) {
+      console.error('Error generating alternatives:', error);
+      setAlternatives('Failed to generate alternatives. Please try again later.');
+      setCitations([]);
+    } finally {
+      setLoadingAlternatives(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -269,7 +347,7 @@ export default function RecipePage({ params }: { params: Promise<{ sessionId: st
               <div className="mt-8">
                 <h1 className="text-4xl font-bold text-gray-900 mb-4">{recipe.title}</h1>
                 <p className="text-gray-600 mb-6">{recipe.description}</p>
-                <div className="flex gap-6 text-gray-600 mb-8">
+                <div className="flex items-center gap-6 text-gray-600 mb-8">
                   {recipe.cookingTime && (
                     <div className="flex items-center gap-2">
                       <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -280,17 +358,54 @@ export default function RecipePage({ params }: { params: Promise<{ sessionId: st
                   )}
                   {recipe.servings && (
                     <div className="flex items-center gap-2">
-                      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                      </svg>
-                      <span>{recipe.servings} servings</span>
+                      <div className="flex items-center gap-2">
+                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                        <span className="text-gray-700">Servings:</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setServings(prev => Math.max(1, prev - 1))}
+                          className="p-1 rounded-full hover:bg-gray-100"
+                        >
+                          <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                          </svg>
+                        </button>
+                        <span className="w-8 text-center font-medium">{servings}</span>
+                        <button
+                          onClick={() => setServings(prev => prev + 1)}
+                          className="p-1 rounded-full hover:bg-gray-100"
+                        >
+                          <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                          </svg>
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
 
                 {/* Ingredients moved to left column */}
                 <div className="mb-8">
-                  <h2 className="text-2xl font-semibold mb-4 text-gray-900">Ingredients</h2>
+                  <div className="flex items-center gap-3 mb-4">
+                    <h2 className="text-2xl font-semibold text-gray-900">Ingredients</h2>
+                    <button
+                      onClick={() => {
+                        setIsDrawerOpen(true);
+                        if (!alternatives) {
+                          generateAlternatives();
+                        }
+                      }}
+                      className="text-blue-600 hover:text-blue-700 text-sm flex items-center gap-1"
+                    >
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                      </svg>
+                      <span>View Alternatives</span>
+                    </button>
+                  </div>
                   <ul className="space-y-2">
                     {recipe.ingredients.map((ingredient, index) => (
                       <li key={index} className="flex items-start gap-2">
@@ -298,13 +413,50 @@ export default function RecipePage({ params }: { params: Promise<{ sessionId: st
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                         </svg>
                         <span className="text-gray-700">
-                          {ingredient.quantity}
+                          {adjustQuantity(ingredient.quantity, recipe.servings || 1, servings)}
                           {ingredient.unit !== 'whole' ? ' ' + ingredient.unit : ''} {ingredient.name}
                         </span>
                       </li>
                     ))}
                   </ul>
                 </div>
+
+                <Drawer isOpen={isDrawerOpen} onClose={() => setIsDrawerOpen(false)}>
+                  {loadingAlternatives ? (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      <div className="prose prose-blue max-w-none">
+                        {alternatives ? (
+                          <div className="whitespace-pre-wrap">{alternatives}</div>
+                        ) : (
+                          <p>Generating alternative ingredients...</p>
+                        )}
+                      </div>
+                      {citations && citations.length > 0 && (
+                        <div className="border-t pt-4">
+                          <h4 className="text-sm font-semibold text-gray-700 mb-2">Sources:</h4>
+                          <ul className="space-y-1">
+                            {citations.map((citation, index) => (
+                              <li key={index}>
+                                <a 
+                                  href={citation}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-sm text-blue-600 hover:text-blue-800 hover:underline break-all"
+                                >
+                                  {citation}
+                                </a>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </Drawer>
               </div>
             </div>
 
