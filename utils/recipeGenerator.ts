@@ -107,7 +107,7 @@ function parseIngredient(ingredientText: string): Recipe['ingredients'][0] {
 
 export async function generateRecipe(transcript: string): Promise<Recipe> {
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
     
     const result = await model.generateContent(RECIPE_PROMPT + transcript);
     const response = await result.response;

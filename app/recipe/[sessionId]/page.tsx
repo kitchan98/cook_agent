@@ -405,6 +405,37 @@ export default function RecipePage({ params }: { params: Promise<{ sessionId: st
                       </svg>
                       <span>View Alternatives</span>
                     </button>
+                    <button
+                      onClick={async () => {
+                        try {
+                          const response = await fetch('/api/tesco-basket', {
+                            method: 'POST',
+                            headers: {
+                              'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                              ingredients: recipe.ingredients
+                            }),
+                          });
+
+                          if (!response.ok) {
+                            throw new Error('Failed to start Tesco basket automation');
+                          }
+
+                          alert('Tesco basket automation started! Check your Tesco basket in 5 min');
+                        } catch (error) {
+                          console.error('Error:', error);
+                          alert('Failed to start Tesco basket automation. Please try again.');
+                        }
+                      }}
+                      className="ml-auto bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+                      title="Let AI help you shop for ingredients at Tesco"
+                    >
+                      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                      </svg>
+                      <span>Shop at Tesco</span>
+                    </button>
                   </div>
                   <ul className="space-y-2">
                     {recipe.ingredients.map((ingredient, index) => (
