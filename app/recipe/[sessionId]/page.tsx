@@ -39,28 +39,25 @@ const ShareButton = ({ recipe, url, sessionId }: { recipe: Recipe; url: string; 
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [isBookmarked, setIsBookmarked] = useState(false);
-  const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
     const checkBookmarkStatus = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        setLoading(false);
         return;
       }
 
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('bookmarks')
         .select('*')
         .eq('user_id', session.user.id)
         .eq('recipe_id', sessionId)
         .single();
 
-      if (!error && data) {
+      if (data) {
         setIsBookmarked(true);
       }
-      setLoading(false);
     };
 
     checkBookmarkStatus();
@@ -81,27 +78,27 @@ const ShareButton = ({ recipe, url, sessionId }: { recipe: Recipe; url: string; 
 
     try {
       if (isBookmarked) {
-        const { error } = await supabase
+        const { error: deleteError } = await supabase
           .from('bookmarks')
           .delete()
           .eq('user_id', session.user.id)
           .eq('recipe_id', sessionId);
 
-        if (error) throw error;
+        if (deleteError) throw deleteError;
         showNotification('Recipe removed from bookmarks');
       } else {
-        const { error } = await supabase
+        const { error: insertError } = await supabase
           .from('bookmarks')
           .insert({
             user_id: session.user.id,
             recipe_id: sessionId
           });
 
-        if (error) throw error;
+        if (insertError) throw insertError;
         showNotification('Recipe bookmarked');
       }
       setIsBookmarked(!isBookmarked);
-    } catch (error) {
+    } catch {
       showNotification('Failed to update bookmark');
     }
   };
@@ -136,7 +133,7 @@ ${recipe.tips.map(tip => `- ${tip}`).join('\n')}` : ''}`;
     try {
       await navigator.clipboard.writeText(text);
       showNotification('Copied to clipboard!');
-    } catch (clipboardError) {
+    } catch {
       showNotification('Failed to copy to clipboard');
     }
   };
@@ -271,6 +268,13 @@ export default function RecipePage({ params }: { params: Promise<{ sessionId: st
 
   const generateAlternatives = async () => {
     setLoadingAlternatives(true);
+    
+    const handleError = (message: string) => {
+      console.error('Error generating alternatives:', message);
+      setAlternatives(`Failed to generate alternatives: ${message}`);
+      setCitations([]);
+    };
+
     try {
       const response = await fetch('/api/alternatives', {
         method: 'POST',
@@ -284,16 +288,15 @@ export default function RecipePage({ params }: { params: Promise<{ sessionId: st
       });
       
       if (!response.ok) {
-        throw new Error('Failed to generate alternatives');
+        handleError('Failed to generate alternatives');
+        return;
       }
 
       const data = await response.json();
       setAlternatives(data.content);
       setCitations(data.citations || []);
-    } catch (error) {
-      console.error('Error generating alternatives:', error);
-      setAlternatives('Failed to generate alternatives. Please try again later.');
-      setCitations([]);
+    } catch {
+      handleError('An unexpected error occurred');
     } finally {
       setLoadingAlternatives(false);
     }
@@ -432,7 +435,7 @@ export default function RecipePage({ params }: { params: Promise<{ sessionId: st
                       title="Let AI help you shop for ingredients at Tesco"
                     >
                       <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                       </svg>
                       <span>Shop at Tesco</span>
                     </button>

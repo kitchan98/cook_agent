@@ -43,7 +43,7 @@ ${ingredients.map(ing => `${ing.quantity}${ing.unit !== 'whole' ? ' ' + ing.unit
     text = text.replace(/```/g, '').trim();
     
     return JSON.parse(text);
-  } catch (parseError) {
+  } catch {
     console.error('Failed to parse Gemini response:', text);
     throw new Error('Failed to normalize ingredients');
   }
