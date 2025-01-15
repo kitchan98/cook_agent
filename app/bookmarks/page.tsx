@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../utils/supabase';
 import type { Recipe } from '../../utils/recipeGenerator';
+import Link from 'next/link';
 
 interface BookmarkedRecipe {
   id: string;
@@ -101,8 +102,11 @@ export default function BookmarksPage() {
         </div>
 
         {recipes.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-gray-600">You haven't bookmarked any recipes yet.</p>
+          <div className="bg-gray-50 p-8 rounded-lg text-center">
+            <p className="text-gray-600">You haven&apos;t bookmarked any recipes yet.</p>
+            <Link href="/" className="text-blue-600 hover:text-blue-700 mt-4 inline-block">
+              Discover recipes
+            </Link>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

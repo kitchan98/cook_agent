@@ -43,7 +43,7 @@ ${ingredients.map(ing => `${ing.quantity}${ing.unit !== 'whole' ? ' ' + ing.unit
     text = text.replace(/```/g, '').trim();
     
     return JSON.parse(text);
-  } catch (error) {
+  } catch (parseError) {
     console.error('Failed to parse Gemini response:', text);
     throw new Error('Failed to normalize ingredients');
   }
@@ -74,8 +74,8 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({ message: 'Tesco basket automation started' });
-  } catch (error) {
-    console.error('Error starting Tesco basket automation:', error);
+  } catch (err) {
+    console.error('Error starting Tesco basket automation:', err);
     return NextResponse.json(
       { error: 'Failed to start Tesco basket automation' },
       { status: 500 }

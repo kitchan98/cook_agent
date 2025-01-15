@@ -136,7 +136,7 @@ ${recipe.tips.map(tip => `- ${tip}`).join('\n')}` : ''}`;
     try {
       await navigator.clipboard.writeText(text);
       showNotification('Copied to clipboard!');
-    } catch (err) {
+    } catch (clipboardError) {
       showNotification('Failed to copy to clipboard');
     }
   };
@@ -221,8 +221,8 @@ const Drawer = ({ isOpen, onClose, children }: { isOpen: boolean; onClose: () =>
 
 export default function RecipePage({ params }: { params: Promise<{ sessionId: string }> }) {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState('');
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [url, setUrl] = useState('');
   const [servings, setServings] = useState<number>(0);
@@ -254,11 +254,11 @@ export default function RecipePage({ params }: { params: Promise<{ sessionId: st
         } else {
           throw new Error('Recipe not found');
         }
-      } catch (err) {
-        console.error('Error loading recipe:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load recipe');
+      } catch (error) {
+        console.error('Error loading recipe:', error);
+        setErrorMessage(error instanceof Error ? error.message : 'Failed to load recipe');
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
 
@@ -299,7 +299,7 @@ export default function RecipePage({ params }: { params: Promise<{ sessionId: st
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
@@ -307,11 +307,11 @@ export default function RecipePage({ params }: { params: Promise<{ sessionId: st
     );
   }
 
-  if (error || !recipe) {
+  if (errorMessage || !recipe) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded-md">
-          <p className="text-red-700">{error || 'Recipe not found'}</p>
+          <p className="text-red-700">{errorMessage || 'Recipe not found'}</p>
           <button
             onClick={() => router.push('/')}
             className="mt-4 text-blue-600 hover:text-blue-700"

@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import type { Recipe } from '../utils/recipeGenerator';
+import { supabase } from '../utils/supabase';
 
 export default function Home() {
   const router = useRouter();
