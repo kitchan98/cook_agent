@@ -1,6 +1,4 @@
 import { NextResponse } from 'next/server';
-import { spawn } from 'child_process';
-import path from 'path';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 interface Ingredient {
@@ -56,24 +54,27 @@ export async function POST(request: Request) {
     // Use Gemini to normalize ingredients
     const normalizedIngredients = await normalizeIngredients(ingredients);
 
-    // Spawn the Python script as a child process with ingredients as arguments
-    const pythonScript = path.join(process.cwd(), 'browser-use', '.vscode', 'tesco_basket.py');
-    const pythonProcess = spawn('python3', [
-      pythonScript,
-      '--ingredients',
-      JSON.stringify(normalizedIngredients)
-    ]);
-
-    // Handle script output
-    pythonProcess.stdout.on('data', (data) => {
-      console.log(`Python script output: ${data}`);
+    // Forward the request to the automation server
+    const automationResponse = await fetch(process.env.AUTOMATION_SERVER_URL!, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.AUTOMATION_SERVER_KEY}`
+      },
+      body: JSON.stringify({
+        ingredients: normalizedIngredients,
+        credentials: {
+          email: process.env.TESCO_EMAIL,
+          password: process.env.TESCO_PASSWORD
+        }
+      })
     });
 
-    pythonProcess.stderr.on('data', (data) => {
-      console.error(`Python script error: ${data}`);
-    });
+    if (!automationResponse.ok) {
+      throw new Error('Automation server error');
+    }
 
-    return NextResponse.json({ message: 'Tesco basket automation started' });
+    return NextResponse.json({ message: 'Tesco basket automation started! Check your basket in about 5 minutes.' });
   } catch (err) {
     console.error('Error starting Tesco basket automation:', err);
     return NextResponse.json(
