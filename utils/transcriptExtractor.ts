@@ -88,8 +88,17 @@ export async function getTikTokTranscript(videoId: string): Promise<{ text: stri
   throw new Error('TikTok transcript extraction not implemented yet');
 }
 
-export async function getInstagramTranscript(videoId: string): Promise<{ text: string; timestamp: string }[]> {
-  // Instagram doesn't provide direct transcript access
-  // We would need to use speech-to-text service or third-party API
-  throw new Error('Instagram transcript extraction not implemented yet');
+export async function getInstagramTranscript(videoUrl: string): Promise<{ text: string; timestamp: string }[]> {
+  const response = await fetch(`${process.env.COOK_PYTHON_SERVER_URL}/get_instagram_reel_transcript`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ reel_url: videoUrl }),
+  });
+  const data = (await response.json()) as { transcript: string };
+  if (!data.transcript) {
+    return [{ text: 'No transcript available', timestamp: "00:00:00" }];
+  }
+  return [{ text: data.transcript, timestamp: "00:00:00" }];
 } 
