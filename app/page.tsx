@@ -10,7 +10,6 @@ export default function Home() {
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [isHovered, setIsHovered] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   // Check login status on component mount
@@ -162,8 +161,6 @@ export default function Home() {
             <motion.button
               type="submit"
               disabled={loading}
-              onHoverStart={() => setIsHovered(true)}
-              onHoverEnd={() => setIsHovered(false)}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               className={`w-full p-4 rounded-xl text-lg font-semibold shadow-lg transition-all duration-300
