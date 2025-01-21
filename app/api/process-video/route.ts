@@ -8,7 +8,11 @@ import { v4 as uuidv4 } from 'uuid';
 export async function POST(req: NextRequest) {
   try {
     const { url } = await req.json();
-    const videoInfo = extractVideoId(url);
+    
+    // Transform YouTube Shorts URL to regular watch URL
+    const transformedUrl = url.replace('youtube.com/shorts/', 'youtube.com/watch?v=');
+    
+    const videoInfo = extractVideoId(transformedUrl);
 
     if (!videoInfo) {
       return NextResponse.json({ error: 'Invalid video URL' }, { status: 400 });
@@ -46,7 +50,7 @@ export async function POST(req: NextRequest) {
         session_id: sessionId,
         video_platform: videoInfo.platform,
         video_id: videoInfo.id,
-        url,
+        url: transformedUrl,
         transcript: transcript.map(t => `[${t.timestamp}] ${t.text}`).join('\n'),
         recipe: JSON.stringify(recipe),
         created_at: new Date().toISOString()
