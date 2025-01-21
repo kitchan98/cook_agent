@@ -32,7 +32,7 @@ ${ingredients.map(ing => `${ing.quantity}${ing.unit !== 'whole' ? ' ' + ing.unit
 
   const result = await model.generateContent(prompt);
   const response = await result.response;
-  let text = response.text();
+  let text = await response.text();
   
   try {
     // Remove markdown code block if present
