@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { use } from 'react';
 import type { Recipe } from '../../../utils/recipeGenerator';
 import { supabase } from '../../../utils/supabase';
+import OcadoLoginModal from '@/app/components/OcadoLoginModal';
 
 const VideoEmbed = ({ url }: { url: string }) => {
   const getEmbedUrl = (url: string) => {
@@ -227,6 +228,7 @@ export default function RecipePage({ params }: { params: Promise<{ sessionId: st
   const [alternatives, setAlternatives] = useState<string>('');
   const [citations, setCitations] = useState<string[]>([]);
   const [loadingAlternatives, setLoadingAlternatives] = useState(false);
+  const [isOcadoModalOpen, setIsOcadoModalOpen] = useState(false);
 
   const { sessionId } = use(params);
 
@@ -299,6 +301,36 @@ export default function RecipePage({ params }: { params: Promise<{ sessionId: st
       handleError('An unexpected error occurred');
     } finally {
       setLoadingAlternatives(false);
+    }
+  };
+
+  const handleOcadoSubmit = async (credentials: { email: string; password: string }) => {
+    if (!recipe) {
+      alert('Recipe not found');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/ocado-basket', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ingredients: recipe.ingredients,
+          credentials
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to start Ocado basket automation');
+      }
+
+      setIsOcadoModalOpen(false);
+      alert('Ocado basket automation started! Check your Ocado basket in 5 min');
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Failed to start Ocado basket automation. Please try again.');
     }
   };
 
@@ -409,35 +441,18 @@ export default function RecipePage({ params }: { params: Promise<{ sessionId: st
                       <span>View Alternatives</span>
                     </button>
                     <button
-                      onClick={async () => {
-                        try {
-                          const response = await fetch('/api/tesco-basket', {
-                            method: 'POST',
-                            headers: {
-                              'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({
-                              ingredients: recipe.ingredients
-                            }),
-                          });
-
-                          if (!response.ok) {
-                            throw new Error('Failed to start Tesco basket automation');
-                          }
-
-                          alert('Tesco basket automation started! Check your Tesco basket in 5 min');
-                        } catch (error) {
-                          console.error('Error:', error);
-                          alert('Failed to start Tesco basket automation. Please try again.');
-                        }
-                      }}
-                      className="ml-auto bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
-                      title="Let AI help you shop for ingredients at Tesco"
+                      onClick={() => setIsOcadoModalOpen(true)}
+                      className="relative ml-auto bg-gradient-to-r from-purple-600 to-purple-800 text-white px-6 py-3 rounded-xl font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-150 flex items-center gap-3 group"
+                      title="Let AI help you shop for ingredients at Ocado"
                     >
-                      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                      <svg className="h-5 w-5 transform group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                       </svg>
-                      <span>Shop at Tesco</span>
+                      <span>Add to Basket</span>
+                      <div className="absolute left-1/2 -translate-x-1/2 -bottom-12 bg-gray-900 text-white text-xs py-2 px-3 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none whitespace-nowrap shadow-lg">
+                        <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-gray-900 transform rotate-45"></div>
+                        AI will add items for you
+                      </div>
                     </button>
                   </div>
                   <ul className="space-y-2">
@@ -529,6 +544,11 @@ export default function RecipePage({ params }: { params: Promise<{ sessionId: st
           </div>
         </div>
       </div>
+      <OcadoLoginModal
+        isOpen={isOcadoModalOpen}
+        onClose={() => setIsOcadoModalOpen(false)}
+        onSubmit={handleOcadoSubmit}
+      />
     </div>
   );
 } 

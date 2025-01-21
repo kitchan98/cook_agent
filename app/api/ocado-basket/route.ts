@@ -13,7 +13,7 @@ async function normalizeIngredients(ingredients: Ingredient[]) {
   const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
   const prompt = `
-Convert these recipe ingredients into simple Tesco search terms.
+Convert these recipe ingredients into simple Ocado search terms.
 Return a JSON array of objects with 'searchTerm' and 'fullDescription'.
 For searchTerm:
 - Use the most basic form (usually 1 word, max 2 words)
@@ -49,7 +49,10 @@ ${ingredients.map(ing => `${ing.quantity}${ing.unit !== 'whole' ? ' ' + ing.unit
 
 export async function POST(request: Request) {
   try {
-    const { ingredients } = await request.json() as { ingredients: Ingredient[] };
+    const { ingredients, credentials } = await request.json() as { 
+      ingredients: Ingredient[];
+      credentials: { email: string; password: string };
+    };
     
     // Use Gemini to normalize ingredients
     const normalizedIngredients = await normalizeIngredients(ingredients);
@@ -63,10 +66,7 @@ export async function POST(request: Request) {
       },
       body: JSON.stringify({
         ingredients: normalizedIngredients,
-        credentials: {
-          email: process.env.TESCO_EMAIL,
-          password: process.env.TESCO_PASSWORD
-        }
+        credentials
       })
     });
 
@@ -74,11 +74,11 @@ export async function POST(request: Request) {
       throw new Error('Automation server error');
     }
 
-    return NextResponse.json({ message: 'Tesco basket automation started! Check your basket in about 5 minutes.' });
+    return NextResponse.json({ message: 'Ocado basket automation started! Check your basket in about 5 minutes.' });
   } catch (err) {
-    console.error('Error starting Tesco basket automation:', err);
+    console.error('Error starting Ocado basket automation:', err);
     return NextResponse.json(
-      { error: 'Failed to start Tesco basket automation' },
+      { error: 'Failed to start Ocado basket automation' },
       { status: 500 }
     );
   }
